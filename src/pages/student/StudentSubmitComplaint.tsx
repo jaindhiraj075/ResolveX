@@ -26,6 +26,7 @@ import Badge from '../../components/common/Badge';
 import AIAnalysisCard from '../../components/ai/AIAnalysisCard';
 import complaintService, { ComplaintPayload, ComplaintItem } from '../../services/complaintService';
 import { useToast } from '../../context/ToastContext';
+import { formatErrorMessage } from '../../utils/errorUtils';
 
 export const StudentSubmitComplaint: React.FC = () => {
   const { showToast } = useToast();
@@ -180,7 +181,7 @@ export const StudentSubmitComplaint: React.FC = () => {
         showToast('Complaint analyzed & registered successfully!', 'success');
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to submit complaint';
+      const msg = formatErrorMessage(err, 'Failed to submit complaint');
       showToast(msg, 'error');
     } finally {
       setSubmitting(false);

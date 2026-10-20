@@ -17,6 +17,7 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
+import { formatErrorMessage } from '../../utils/errorUtils';
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -108,10 +109,7 @@ export const RegisterPage: React.FC = () => {
       showToast('Student account created successfully! Welcome to ResolveX.', 'success');
       navigate('/student/dashboard', { replace: true });
     } catch (err: any) {
-      const message =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Registration failed. Please check your information.';
+      const message = formatErrorMessage(err, 'Registration failed. Please check your information.');
       setApiError(message);
       showToast(message, 'error', 'Registration Error');
     } finally {
@@ -146,7 +144,7 @@ export const RegisterPage: React.FC = () => {
             {apiError && (
               <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 animate-in fade-in duration-150">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
-                <span>{apiError}</span>
+                <span>{typeof apiError === 'string' ? apiError : formatErrorMessage(apiError)}</span>
               </div>
             )}
 

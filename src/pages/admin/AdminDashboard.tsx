@@ -41,6 +41,7 @@ import AnalyticsDateFilter, { FilterState } from '../../components/analytics/Ana
 import RecurringIssuesIntelligence from '../../components/ai/RecurringIssuesIntelligence';
 import complaintService from '../../services/complaintService';
 import { useToast } from '../../context/ToastContext';
+import { formatErrorMessage } from '../../utils/errorUtils';
 
 export const AdminDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -117,7 +118,7 @@ export const AdminDashboard: React.FC = () => {
       setFeedbackData(fb);
       setAiData(ai);
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.friendlyMessage || 'Failed to load institutional analytics';
+      const msg = formatErrorMessage(err, 'Failed to load institutional analytics');
       setError(msg);
       showToast(msg, 'error');
     } finally {
@@ -194,7 +195,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{error}</span>
+            <span>{typeof error === 'string' ? error : formatErrorMessage(error)}</span>
           </div>
           <button
             type="button"

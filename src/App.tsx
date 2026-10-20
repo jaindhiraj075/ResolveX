@@ -54,14 +54,16 @@ import AdminReports from './pages/admin/AdminReports';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminStaffDetail from './pages/admin/AdminStaffDetail';
 import AdminSettings from './pages/admin/AdminSettings';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
               {/* Public Routes */}
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<LandingPage />} />
@@ -140,5 +142,6 @@ export default function App() {
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }

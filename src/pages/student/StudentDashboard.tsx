@@ -19,6 +19,7 @@ import Button from '../../components/common/Button';
 import AnimatedCounter from '../../components/common/AnimatedCounter';
 import EmptyState from '../../components/common/EmptyState';
 import complaintService, { ComplaintItem } from '../../services/complaintService';
+import { formatErrorMessage } from '../../utils/errorUtils';
 import { staggerContainer, staggerItem } from '../../config/motion';
 
 export const StudentDashboard: React.FC = () => {
@@ -34,7 +35,7 @@ export const StudentDashboard: React.FC = () => {
       const data = await complaintService.getComplaints();
       setComplaints(data || []);
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.friendlyMessage || 'Unable to load your complaints');
+      setError(formatErrorMessage(err, 'Unable to load your complaints'));
       setComplaints([]);
     } finally {
       setLoading(false);
@@ -135,7 +136,7 @@ export const StudentDashboard: React.FC = () => {
         <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{error}</span>
+            <span>{typeof error === 'string' ? error : formatErrorMessage(error)}</span>
           </div>
           <button
             type="button"

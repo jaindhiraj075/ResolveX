@@ -6,6 +6,7 @@ import useAuth from '../hooks/useAuth';
 import Button from '../components/common/Button';
 import ThemeToggle from '../components/common/ThemeToggle';
 import PageTransition from '../components/common/PageTransition';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 
 export const PublicLayout: React.FC = () => {
   const { isAuthenticated, role, logout } = useAuth();
@@ -109,7 +110,9 @@ export const PublicLayout: React.FC = () => {
       <main className="flex-1 flex flex-col">
         <AnimatePresence mode="wait" initial={false}>
           <PageTransition key={location.pathname} className="flex-1 flex flex-col">
-            {element}
+            <ErrorBoundary inline fallbackTitle="Unable to display this view">
+              {element}
+            </ErrorBoundary>
           </PageTransition>
         </AnimatePresence>
       </main>

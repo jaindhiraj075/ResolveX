@@ -8,7 +8,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const args = process.argv.slice(2);
+let PORT = parseInt(process.env.PORT || '3000', 10);
+let HOST = process.env.HOST || '0.0.0.0';
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--port' || args[i] === '-p') {
+    const p = parseInt(args[i + 1], 10);
+    if (!isNaN(p)) PORT = p;
+  } else if (args[i] === '--host' || args[i] === '-h') {
+    if (args[i + 1]) HOST = args[i + 1];
+  }
+}
+
 const BACKEND_PORT = 5000;
 
 // 1. Launch & Manage Python Flask Process
@@ -34,6 +46,12 @@ function ensurePythonDependencies() {
 }
 
 function startFlaskBackend() {
+  try {
+    execSync('pkill -f "python3 backend/run.py" 2>/dev/null || true');
+  } catch {
+    // Ignore
+  }
+
   ensurePythonDependencies();
   console.log('[ResolveX Supervisor] Spawning Flask backend (backend/run.py)...');
   pythonProcess = spawn('python3', ['backend/run.py'], {
@@ -55,8 +73,6 @@ function startFlaskBackend() {
     console.error('[ResolveX Supervisor] Failed to start Flask process:', err);
   });
 }
-
-startFlaskBackend();
 
 // Clean up child process on exit
 const cleanup = () => {
@@ -155,16 +171,18 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    startFlaskBackend();
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
+    startFlaskBackend();
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[ResolveX Full-Stack] Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`[ResolveX Full-Stack] Server running on http://${HOST}:${PORT}`);
   });
 }
 

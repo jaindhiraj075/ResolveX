@@ -1,7 +1,10 @@
 import axios from 'axios';
+import { formatErrorMessage } from '../utils/errorUtils';
 
-// Resolve base URL from environment or default to relative path proxy
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// Resolve base URL from environment or default to relative path proxy.
+// Trim trailing slash to avoid double-slash issues (e.g. https://api.com//api/auth/login).
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE_URL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,10 +30,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (!error.response) {
-      error.friendlyMessage = 'Unable to connect to the server. Please check your network connection.';
+      error.friendlyMessage =
+        'Unable to connect to the ResolveX server. Please check your network or verify the backend service is running.';
     } else {
       const status = error.response.status;
-      const backendMsg = error.response.data?.message;
+      const backendMsg =
+        typeof error.response.data?.message === 'string'
+          ? error.response.data.message
+          : typeof error.response.data?.error === 'string'
+          ? error.response.data.error
+          : null;
 
       if (status === 401) {
         // Don't loop redirect if already on login or register
@@ -48,19 +57,25 @@ api.interceptors.response.use(
             })
           );
         }
-        error.friendlyMessage = backendMsg || 'Authentication required. Please sign in.';
+        error.friendlyMessage = backendMsg || 'Authentication required or credentials invalid. Please sign in.';
       } else if (status === 403) {
         error.friendlyMessage = backendMsg || 'Access denied: You do not have permission for this resource.';
       } else if (status === 404) {
-        error.friendlyMessage = backendMsg || 'The requested resource was not found.';
+        // Helpful diagnostic message for production setups (e.g. Vercel)
+        error.friendlyMessage =
+          backendMsg ||
+          'API endpoint not found (HTTP 404). If running on a static host like Vercel, ensure the backend API is deployed and VITE_API_BASE_URL is configured.';
       } else if (status === 422) {
         error.friendlyMessage = backendMsg || 'Validation error: Please review the submitted information.';
       } else if (status === 413) {
         error.friendlyMessage = backendMsg || 'The submitted payload or file exceeds the allowed size limit.';
       } else if (status === 500) {
         error.friendlyMessage = 'An internal server error occurred. Please try again shortly.';
+      } else if (status === 502 || status === 503) {
+        error.friendlyMessage =
+          'ResolveX backend service is initializing or temporarily unreachable. Please retry momentarily.';
       } else {
-        error.friendlyMessage = backendMsg || 'An unexpected error occurred. Please try again.';
+        error.friendlyMessage = backendMsg || formatErrorMessage(error);
       }
     }
     return Promise.reject(error);
@@ -69,13 +84,11 @@ api.interceptors.response.use(
 
 /**
  * Extracts a safe, user-friendly error string without leaking internals or raw stack traces.
+ * Always returns a primitive string.
  */
 export function getErrorMessage(error: any): string {
-  if (!error) return 'An unknown error occurred.';
-  if (error.friendlyMessage) return error.friendlyMessage;
-  if (error.response?.data?.message) return error.response.data.message;
-  if (error.message && !error.message.includes('status code')) return error.message;
-  return 'Unable to complete request. Please try again.';
+  return formatErrorMessage(error);
 }
 
 export default api;
+

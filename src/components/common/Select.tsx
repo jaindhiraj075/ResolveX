@@ -42,7 +42,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">{error}</p>}
+        {error && <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 font-medium">{typeof error === 'string' ? error : String(error || '')}</p>}
         {!error && helperText && (
           <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
         )}

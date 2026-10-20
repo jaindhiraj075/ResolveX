@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
+import { formatErrorMessage } from '../../utils/errorUtils';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -21,6 +22,18 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const from = (location.state as any)?.from?.pathname;
+
+  // Detect if app is running on a static remote host (e.g. Vercel) without configured backend URL
+  const isVercelOrStatic =
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('vercel.app') &&
+    !(import.meta.env.VITE_API_BASE_URL || '').trim();
+
+  const safeErrorString: string | null = error
+    ? typeof error === 'string'
+      ? error
+      : formatErrorMessage(error, 'Authentication failed')
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +55,13 @@ export const LoginPage: React.FC = () => {
       const success = response?.success ?? (Boolean(user) && Boolean(token));
 
       if (!success || !user || !token) {
-        throw new Error(
+        const rawMsg =
           response?.data?.message ||
           response?.message ||
           response?.data?.error ||
           response?.error ||
-          'Authentication failed: Invalid credentials or response'
-        );
+          'Authentication failed: Invalid credentials or response';
+        throw new Error(typeof rawMsg === 'string' ? rawMsg : formatErrorMessage(rawMsg));
       }
 
       const userRole = (user.role || '').toUpperCase();
@@ -73,22 +86,7 @@ export const LoginPage: React.FC = () => {
         navigate('/student/dashboard', { replace: true });
       }
     } catch (err: any) {
-      let message = 'Unable to log in. Please check your credentials.';
-
-      if (err.response?.status === 502 || err.response?.status === 503 || err.code === 'ERR_NETWORK') {
-        message =
-          err.response?.data?.message ||
-          'ResolveX backend service is initializing or temporarily unreachable. Please retry momentarily.';
-      } else if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        message = err.response.data.error;
-      } else if (err.friendlyMessage) {
-        message = err.friendlyMessage;
-      } else if (err.message) {
-        message = err.message;
-      }
-
+      const message = formatErrorMessage(err, 'Unable to log in. Please check your credentials.');
       setError(message);
       showToast(message, 'error', 'Authentication Failed');
     } finally {
@@ -152,13 +150,35 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Informational Banner for Vercel Deployments without configured backend */}
+        {isVercelOrStatic && !safeErrorString && (
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                Backend Deployment Configuration Required
+              </p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                Vercel is hosting the static frontend. To connect live authentication, deploy the Flask backend in <code className="px-1 py-0.5 bg-amber-100 dark:bg-amber-900/60 rounded font-mono text-[10px]">/backend</code> (e.g. Render/Railway) and configure <code className="px-1 py-0.5 bg-amber-100 dark:bg-amber-900/60 rounded font-mono text-[10px]">VITE_API_BASE_URL</code> in Vercel project settings.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Login Card */}
         <Card hoverElevation>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 animate-in fade-in duration-150">
+            {safeErrorString && (
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 animate-in fade-in duration-150">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
-                <span>{error}</span>
+                <div className="flex-1 space-y-1">
+                  <p className="font-semibold">{safeErrorString}</p>
+                  {(safeErrorString.includes('HTTP 404') || safeErrorString.includes('VITE_API_BASE_URL') || safeErrorString.includes('backend service') || safeErrorString.includes('Backend')) && (
+                    <p className="text-[11px] text-rose-600/90 dark:text-rose-400/90 leading-relaxed">
+                      Configuration Note: On static hosts (like Vercel), ensure your Python Flask backend is deployed and its URL is set as <code className="px-1 py-0.5 bg-rose-100 dark:bg-rose-900/50 rounded font-mono text-[10px]">VITE_API_BASE_URL</code> in environment variables.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 

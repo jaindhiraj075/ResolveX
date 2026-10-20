@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 import { toastVariants } from '../config/motion';
 
+import { formatErrorMessage } from '../utils/errorUtils';
+
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface ToastItem {
@@ -15,7 +17,7 @@ export interface ToastItem {
 
 interface ToastContextType {
   toasts: ToastItem[];
-  showToast: (message: string, type?: ToastType, title?: string, duration?: number) => void;
+  showToast: (message: any, type?: ToastType, title?: string, duration?: number) => void;
   removeToast: (id: string) => void;
 }
 
@@ -29,9 +31,11 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = 'info', title?: string, duration = 3500) => {
+    (message: any, type: ToastType = 'info', title?: string, duration = 3500) => {
+      const safeMessage = typeof message === 'string' ? message : formatErrorMessage(message);
+      const safeTitle = typeof title === 'string' ? title : title ? formatErrorMessage(title) : undefined;
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const newToast: ToastItem = { id, type, title, message, duration };
+      const newToast: ToastItem = { id, type, title: safeTitle, message: safeMessage, duration };
       setToasts((prev) => [...prev, newToast]);
 
       if (duration > 0) {
@@ -82,11 +86,11 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 <div className="flex-1 min-w-0">
                   {toast.title && (
                     <h4 className="text-xs font-semibold text-slate-900 dark:text-white leading-tight">
-                      {toast.title}
+                      {typeof toast.title === 'string' ? toast.title : formatErrorMessage(toast.title)}
                     </h4>
                   )}
                   <p className={`text-xs ${toast.title ? 'mt-0.5 text-slate-600 dark:text-slate-400' : 'font-medium'}`}>
-                    {toast.message}
+                    {typeof toast.message === 'string' ? toast.message : formatErrorMessage(toast.message)}
                   </p>
                 </div>
                 <button
